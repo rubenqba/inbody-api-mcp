@@ -58,7 +58,7 @@ class AuthProxy(BaseHTTPRequestHandler):
         return True
 
     def _proxy_request(self, method: str) -> None:
-        """Forward request to upstream MCP server."""
+        """Forward request to upstream MCP server with streaming support."""
         if not self._validate_token():
             return
 
@@ -70,19 +70,31 @@ class AuthProxy(BaseHTTPRequestHandler):
         headers.pop("Host", None)
 
         try:
-            with httpx.Client(timeout=30.0) as client:
-                resp = client.request(method, url, content=body, headers=headers)
+            # Use streaming to support SSE and bidirectional communication
+            with httpx.stream(method, url, content=body, headers=headers, timeout=None) as resp:
                 self.send_response(resp.status_code)
                 for key, value in resp.headers.items():
-                    self.send_header(key, value)
+                    if key.lower() not in ("content-length", "transfer-encoding"):
+                        self.send_header(key, value)
+                self.send_header("Transfer-Encoding", "chunked")
                 self.end_headers()
-                self.wfile.write(resp.content)
+
+                # Stream response body
+                for chunk in resp.iter_bytes(chunk_size=8192):
+                    if chunk:
+                        self.wfile.write(f"{len(chunk):x}\r\n".encode())
+                        self.wfile.write(chunk)
+                        self.wfile.write(b"\r\n")
+                self.wfile.write(b"0\r\n\r\n")
         except Exception as e:
             logger.error("Proxy error: %s", e)
-            self.send_response(502)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"error": "Gateway error"}).encode())
+            try:
+                self.send_response(502)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Gateway error"}).encode())
+            except:
+                pass
 
     def do_GET(self) -> None:
         """Handle GET requests."""
