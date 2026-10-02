@@ -113,26 +113,71 @@ uv run python generate_api_key.py
 
 Add it to `.env` as `MCP_API_KEY=...`. Never commit it.
 
-### 2. Run it
+### 2. Run it on a server
 
-With Docker (listens on `$PORT`, default 8080):
+Pick one. Both listen on `$PORT` (default `8080`) and read `INBODY_*` and
+`MCP_API_KEY` from the environment or a `.env` file.
+
+#### Option A: Docker
 
 ```bash
+git clone git@github.com:rubenqba/inbody-api-mcp.git && cd inbody-api-mcp
+# create .env with INBODY_LOGIN_ID, INBODY_LOGIN_PW, INBODY_COUNTRY_CODE, MCP_API_KEY
 docker build -t inbody-mcp .
-docker run -d -p 8080:8080 --env-file .env inbody-mcp
+docker run -d --name inbody-mcp --restart unless-stopped \
+  -p 8080:8080 --env-file .env inbody-mcp
 ```
 
-Or without Docker:
+Check it: `curl http://localhost:8080/healthz` returns `ok`. Update with
+`git pull`, rebuild, and re-run the container.
+
+#### Option B: Run directly (no Docker)
+
+Requires [uv](https://docs.astral.sh/uv/) on the server.
 
 ```bash
+git clone git@github.com:rubenqba/inbody-api-mcp.git && cd inbody-api-mcp
+uv sync
 uv run inbody-api-mcp-http
 ```
 
+To keep it running across reboots, use a systemd unit
+(`/etc/systemd/system/inbody-mcp.service`):
+
+```ini
+[Unit]
+Description=InBody MCP (HTTP)
+After=network-online.target
+
+[Service]
+WorkingDirectory=/opt/inbody-api-mcp
+EnvironmentFile=/opt/inbody-api-mcp/.env
+ExecStart=/usr/local/bin/uv run inbody-api-mcp-http
+Restart=on-failure
+User=inbody
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Then `sudo systemctl enable --now inbody-mcp`. Keep `.env` readable only by
+that user (`chmod 600`).
+
 ### 3. Expose it over HTTPS
 
-Deploy the image to any container host, or tunnel your machine for testing
-(`ngrok http 8080` / `cloudflared tunnel --url http://localhost:8080`). Your
-MCP URL is `https://<host>/mcp`.
+Claude.ai and ChatGPT need a public HTTPS URL. The server speaks plain HTTP, so
+put a TLS terminator in front of it, for example Caddy (automatic certificates):
+
+```
+inbody.example.com {
+    reverse_proxy localhost:8080
+}
+```
+
+Do not publish port 8080 directly to the internet; let only the proxy reach it.
+For quick tests, tunnel your machine instead
+(`ngrok http 8080` / `cloudflared tunnel --url http://localhost:8080`). Your MCP
+URL is `https://<host>/mcp`.
 
 ### 4. Add it to your client
 
