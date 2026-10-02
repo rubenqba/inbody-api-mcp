@@ -199,6 +199,30 @@ curl -s -X POST https://<host>/mcp \
 Rotate the key if it is ever exposed: generate a new one, update `.env` or your
 host's secrets, and restart.
 
+### Deploy on Render (free tier)
+
+[Render](https://render.com) can build this repo's `Dockerfile` and keep it online
+at no cost. The free web service sleeps after 15 minutes without traffic and
+wakes on the next request (the first call after a sleep takes about a minute),
+and includes 750 instance hours per month per workspace, enough for one service
+running all month.
+
+1. Push this repo to your GitHub account (a fork works).
+2. In the Render dashboard choose **New > Blueprint**, connect the repo, and
+   select the branch. Render reads [`render.yaml`](render.yaml).
+3. When prompted, enter the secrets: `INBODY_LOGIN_ID`, `INBODY_LOGIN_PW`,
+   `INBODY_COUNTRY_CODE` and `MCP_API_KEY` (generate it with
+   `uv run python generate_api_key.py`). They are never stored in the repo.
+4. Wait for the first deploy. Your MCP URL is
+   `https://<service-name>.onrender.com/mcp`.
+5. Verify with the commands in [Verify](#verify), then add the URL and the
+   Bearer key as a custom connector in Claude.ai or ChatGPT.
+
+Render injects `PORT` (default `10000`) and terminates HTTPS for you, so no
+extra proxy is needed. Render's health check uses `/healthz`, which does not
+require the token. If the first request after a sleep times out in the client,
+retry it once the instance has woken up.
+
 ## Available Tools
 
 | Tool | Description |

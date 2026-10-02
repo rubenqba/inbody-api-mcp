@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: inbody-mcp
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: INBODY_LOGIN_ID
+        sync: false
+      - key: INBODY_LOGIN_PW
+        sync: false
+      - key: INBODY_COUNTRY_CODE
+        sync: false
+      - key: MCP_API_KEY
+        sync: false
