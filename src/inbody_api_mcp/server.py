@@ -1,17 +1,21 @@
 """MCP server for InBody body-composition data via the mobile REST API."""
 
+import hmac
 import json
 import logging
+import os
 from datetime import datetime
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
+from mcp.types import ToolAnnotations
+from starlette.responses import JSONResponse, PlainTextResponse
 
 from .client import InBodyClient
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-mcp = FastMCP(
+mcp = MCPServer(
     "inbody",
     instructions=(
         "InBody MCP server for body-composition data via the mobile REST API. "
@@ -90,12 +94,12 @@ def _scan_summary(record: dict) -> dict:
 # Tools
 # ------------------------------------------------------------------
 
-_READONLY = {
-    "readOnlyHint": True,
-    "destructiveHint": False,
-    "idempotentHint": True,
-    "openWorldHint": True,
-}
+_READONLY = ToolAnnotations(
+    read_only_hint=True,
+    destructive_hint=False,
+    idempotent_hint=True,
+    open_world_hint=True,
+)
 
 
 @mcp.tool(annotations=_READONLY)
@@ -213,9 +217,7 @@ def get_scan(raw_datetime: str | None = None) -> str:
 def main() -> None:
     """Run the MCP server over stdio.
 
-    stdio is the only supported transport. The Docker image wraps this stdio
-    process with supergateway to expose streamable-HTTP; local clients spawn it
-    directly via uvx/uv.
+    Local clients spawn this directly via uv. For remote use see main_http.
     """
     # Load .env for local development. No-op if the file is missing.
     # override=False keeps real environment variables (Docker, systemd, MCP
@@ -227,6 +229,49 @@ def main() -> None:
         logger.info("Loaded .env from %s", dotenv_path)
 
     mcp.run(transport="stdio")
+
+
+class _BearerAuth:
+    """ASGI middleware: require `Authorization: Bearer <MCP_API_KEY>`."""
+
+    def __init__(self, app, api_key: str) -> None:
+        self.app = app
+        self.api_key = api_key.encode()
+
+    async def __call__(self, scope, receive, send) -> None:
+        if scope["type"] == "http" and scope["path"] != "/healthz":
+            headers = dict(scope["headers"])
+            supplied = headers.get(b"authorization", b"")
+            expected = b"Bearer " + self.api_key
+            if not hmac.compare_digest(supplied, expected):
+                await JSONResponse(
+                    {"error": "Unauthorized"},
+                    status_code=401,
+                    headers={"WWW-Authenticate": "Bearer"},
+                )(scope, receive, send)
+                return
+        await self.app(scope, receive, send)
+
+
+def main_http() -> None:
+    """Serve streamable-HTTP natively, protected by a Bearer API key."""
+    import uvicorn
+    from dotenv import find_dotenv, load_dotenv
+
+    load_dotenv(find_dotenv(usecwd=True), override=False)
+
+    api_key = os.environ.get("MCP_API_KEY")
+    if not api_key:
+        raise SystemExit("MCP_API_KEY is required for HTTP mode (refusing to start unauthenticated).")
+
+    app = mcp.streamable_http_app(host="0.0.0.0")
+    app.add_route("/healthz", lambda request: PlainTextResponse("ok"))
+    uvicorn.run(
+        _BearerAuth(app, api_key),
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", "8080")),
+        log_level="info",
+    )
 
 
 if __name__ == "__main__":
