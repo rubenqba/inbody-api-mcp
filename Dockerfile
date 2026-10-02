@@ -35,15 +35,18 @@ RUN uv python install 3.14 \
     && uv tool install --compile-bytecode --python 3.14 . \
     && inbody-api-mcp --help >/dev/null 2>&1 || true
 
-# supergateway wraps the stdio MCP; `docker run -p` remaps $PORT.
-# --stateful enables Mcp-Session-Id semantics per the MCP streamable-HTTP spec.
-# --sessionTimeout is generous so a forgotten session eventually self-heals.
-ENTRYPOINT ["/bin/sh", "-c", "exec supergateway \
-  --stdio 'inbody-api-mcp' \
-  --outputTransport streamableHttp \
-  --stateful \
-  --streamableHttpPath /mcp \
-  --healthEndpoint /healthz \
-  --port \"${PORT}\" \
-  --sessionTimeout 3600000 \
-  --logLevel info"]
+# Start supergateway on internal port 9000, then run auth proxy on public port 8080.
+# Auth proxy validates Bearer token, then forwards to supergateway.
+ENTRYPOINT ["/bin/sh", "-c", "\
+  supergateway \
+    --stdio 'inbody-api-mcp' \
+    --outputTransport streamableHttp \
+    --stateful \
+    --streamableHttpPath /mcp \
+    --healthEndpoint /healthz \
+    --port 9000 \
+    --sessionTimeout 3600000 \
+    --logLevel info &\
+  sleep 2 && \
+  exec inbody-api-mcp-auth-proxy \
+  "]

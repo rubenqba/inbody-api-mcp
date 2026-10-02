@@ -29,6 +29,7 @@ dependencies = [
 
 [project.scripts]
 inbody-api-mcp = "inbody_api_mcp.server:main"
+inbody-api-mcp-auth-proxy = "inbody_api_mcp.auth_proxy:main"
 
 [dependency-groups]
 dev = [

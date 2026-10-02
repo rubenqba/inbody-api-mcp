@@ -30,6 +30,8 @@ any MCP client.
 
 ## Quick Start
 
+> **Remote deployment with authentication?** See [AUTHENTICATION.md](AUTHENTICATION.md) for deploying to Fly.io, Railway, or other cloud platforms securely.
+
 ### 1. Install [uv](https://docs.astral.sh/uv/)
 
 ```bash
