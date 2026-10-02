@@ -1,13 +1,9 @@
-# InBody MCP image, wrapped with supergateway.
+# InBody MCP image serving native streamable-HTTP (MCP SDK v2).
+#   - MCP endpoint on 0.0.0.0:$PORT at /mcp, requires `Authorization: Bearer $MCP_API_KEY`
+#   - Unauthenticated health endpoint at /healthz
 #
-# Exposes the stdio MCP server over streamable-HTTP so it can be reverse-proxied
-# or run as a standalone container:
-#   - MCP streamable-HTTP on 0.0.0.0:$PORT at /mcp
-#   - Health endpoint at /healthz
-#   - stdio-speaking MCP process is spawned by supergateway as a child.
-#
-# Base: supercorp/supergateway:uvx (Alpine + Node 20 + uv).
-# We install Python 3.14 via uv.
+# Base: supercorp/supergateway:uvx is used only for its Alpine + uv toolchain;
+# supergateway itself is not run. We install Python 3.14 via uv.
 
 FROM supercorp/supergateway:uvx
 
