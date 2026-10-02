@@ -1,11 +1,10 @@
 # inbody-api-mcp
 
-<!-- mcp-name: io.github.rwestergren/inbody-api-mcp -->
+<!-- mcp-name: io.github.rubenqba/inbody-api-mcp -->
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![CI](https://github.com/rwestergren/inbody-api-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/rwestergren/inbody-api-mcp/actions/workflows/ci.yml)
-[![Build Docker image](https://github.com/rwestergren/inbody-api-mcp/actions/workflows/docker.yml/badge.svg)](https://github.com/rwestergren/inbody-api-mcp/actions/workflows/docker.yml)
-[![PyPI](https://img.shields.io/pypi/v/inbody-api-mcp.svg)](https://pypi.org/project/inbody-api-mcp/)
+[![CI](https://github.com/rubenqba/inbody-api-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/rubenqba/inbody-api-mcp/actions/workflows/ci.yml)
+[![Build Docker image](https://github.com/rubenqba/inbody-api-mcp/actions/workflows/docker.yml/badge.svg)](https://github.com/rubenqba/inbody-api-mcp/actions/workflows/docker.yml)
 
 An [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server for
 [InBody](https://inbody.com/) body-composition data, built on the

@@ -1,9 +1,9 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.rwestergren/inbody-api-mcp",
+  "name": "io.github.rubenqba/inbody-api-mcp",
   "description": "MCP server for InBody body-composition data — scans, body fat, muscle mass, body water",
   "repository": {
-    "url": "https://github.com/rwestergren/inbody-api-mcp",
+    "url": "https://github.com/rubenqba/inbody-api-mcp",
     "source": "github"
   },
   "version": "0.1.0",
